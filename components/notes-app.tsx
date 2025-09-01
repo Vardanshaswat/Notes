@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import useSWR, { mutate } from "swr";
 import { useMemo, useState } from "react";
 
@@ -17,7 +16,10 @@ type Note = {
   updatedAt?: string;
 };
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) =>
+  fetch(url)
+    .then((r) => r.json())
+    .then((res) => res.notes || res);
 
 export default function NotesApp() {
   const [query, setQuery] = useState("");
@@ -38,11 +40,12 @@ export default function NotesApp() {
   const { data, isLoading, error } = useSWR<Note[]>(key, fetcher);
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-4 md:p-6">
-      <header className="mb-6 flex items-start justify-between gap-3">
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Header */}
+      <header className="mb-6 flex flex-col md:flex-row md:justify-between md:items-start gap-3">
         <div>
-          <h1 className="text-pretty text-2xl font-semibold">Notes</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-3xl font-bold text-gray-900">Notes</h1>
+          <p className="text-gray-500 mt-1">
             Create, search, pin, and archive your notes.
           </p>
         </div>
@@ -53,50 +56,49 @@ export default function NotesApp() {
             window.location.href = "/login";
           }}
         >
-          <button
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
-            aria-label="Sign out"
-          >
+          <button className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition">
             Sign out
           </button>
         </form>
       </header>
 
+      {/* Create Note Form */}
       <CreateNoteForm onCreated={() => mutate(key)} />
 
+      {/* Filters */}
       <section
         aria-label="Filters"
-        className="mt-6 rounded-md border bg-card p-3"
+        className="mt-6 rounded-xl border bg-white p-4 shadow-sm"
       >
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-1 items-center gap-3">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+          <div className="flex flex-1 gap-3">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search notes..."
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:border-blue-600"
-              aria-label="Search notes"
+              className="flex-1 rounded-lg border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <input
+            {/* <input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="Filter by label"
-              className="w-48 rounded-md border px-3 py-2 text-sm outline-none focus:border-blue-600"
-              aria-label="Filter by label"
-            />
+              className="w-48 rounded-lg border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            /> */}
           </div>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-6 text-sm">
+            <label className="flex items-center gap-2">
               <input
                 type="checkbox"
+                className="h-4 w-4 accent-blue-500"
                 checked={onlyPinned}
                 onChange={(e) => setOnlyPinned(e.target.checked)}
               />
               Pinned
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2">
               <input
                 type="checkbox"
+                className="h-4 w-4 accent-blue-500"
                 checked={showArchived}
                 onChange={(e) => setShowArchived(e.target.checked)}
               />
@@ -106,20 +108,20 @@ export default function NotesApp() {
         </div>
       </section>
 
+      {/* Notes List */}
       <section aria-busy={isLoading} className="mt-4">
         {error && (
           <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             Failed to load notes.
           </div>
         )}
-        {isLoading && (
-          <div className="text-sm text-muted-foreground">Loading…</div>
-        )}
+        {isLoading && <div className="text-sm text-gray-500">Loading…</div>}
         {!isLoading && data && data.length === 0 && (
-          <div className="text-sm text-muted-foreground">No notes found.</div>
+          <div className="text-sm text-gray-500">No notes found.</div>
         )}
-        <ul className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-          {data?.notes?.map((n) => (
+
+        <ul className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
+          {data?.map((n) => (
             <NoteCard key={n._id} note={n} onChanged={() => mutate(key)} />
           ))}
         </ul>
@@ -128,6 +130,7 @@ export default function NotesApp() {
   );
 }
 
+// ---------- CreateNoteForm ----------
 function CreateNoteForm({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -162,9 +165,7 @@ function CreateNoteForm({ onCreated }: { onCreated: () => void }) {
         try {
           const data = await res.json();
           if (data?.error) msg = data.error;
-        } catch {
-          // ignore JSON parse errors
-        }
+        } catch {}
         throw new Error(msg);
       }
 
@@ -175,7 +176,6 @@ function CreateNoteForm({ onCreated }: { onCreated: () => void }) {
       onCreated();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("create note error:", msg);
       setErrorMsg(msg || "Failed to create");
     } finally {
       setSaving(false);
@@ -183,70 +183,55 @@ function CreateNoteForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-md border bg-card p-3">
+    <form
+      onSubmit={submit}
+      className="mt-4 rounded-xl bg-white p-4 shadow-sm grid gap-4"
+    >
       {errorMsg && (
-        <div
-          className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          role="alert"
-        >
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {errorMsg}
         </div>
       )}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <label className="text-sm">Title</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="rounded-md border px-3 py-2 text-sm outline-none focus:border-blue-600"
-            placeholder="Note title"
-          />
-        </div>
-        <div className="flex items-end gap-3">
-          <div className="flex flex-1 flex-col gap-2">
-            <label className="text-sm">Labels (comma-separated)</label>
-            <input
-              value={labels}
-              onChange={(e) => setLabels(e.target.value)}
-              className="rounded-md border px-3 py-2 text-sm outline-none focus:border-blue-600"
-              placeholder="work, todo, idea"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm">Color</label>
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              aria-label="Note color"
-              className="h-10 w-10 cursor-pointer rounded-md border"
-            />
-          </div>
-        </div>
-        <div className="md:col-span-2 flex flex-col gap-2">
-          <label className="text-sm">Content</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="min-h-24 rounded-md border px-3 py-2 text-sm outline-none focus:border-blue-600"
-            placeholder="Write your note…"
-          />
-        </div>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Title"
+        className="rounded-lg border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      />
+      <input
+        value={labels}
+        onChange={(e) => setLabels(e.target.value)}
+        placeholder="Labels (comma-separated)"
+        className="rounded-lg border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      />
+      <div className="flex items-center gap-3">
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => setColor(e.target.value)}
+          className="h-10 w-10 cursor-pointer rounded-lg border"
+        />
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Write your note…"
+          className="flex-1 min-h-[6rem] rounded-lg border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
       </div>
-      <div className="mt-3 flex justify-end">
-        <button
-          disabled={disabled}
-          className={`rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white ${
-            disabled ? "opacity-60" : "hover:bg-blue-700"
-          }`}
-        >
-          {saving ? "Saving…" : "Add note"}
-        </button>
-      </div>
+      <button
+        type="submit"
+        disabled={disabled}
+        className={`self-end rounded-full bg-blue-600 text-white px-6 py-2 font-medium transition ${
+          disabled ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-700"
+        }`}
+      >
+        {saving ? "Saving…" : "Add Note"}
+      </button>
     </form>
   );
 }
 
+// ---------- NoteCard ----------
 function NoteCard({ note, onChanged }: { note: Note; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
 
@@ -277,61 +262,63 @@ function NoteCard({ note, onChanged }: { note: Note; onChanged: () => void }) {
   }
 
   return (
-    <li className="rounded-md border bg-card p-3">
-      <div className="flex items-start justify-between gap-3">
+    <li className="rounded-xl bg-white p-4 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className="flex justify-between gap-4">
         <div>
-          <h3 className="text-balance text-base font-medium">
+          <h3 className="text-lg font-semibold text-gray-900">
             {note.title || "Untitled"}
           </h3>
-          <p className="mt-1 whitespace-pre-wrap text-sm leading-6">
+          <p className="mt-1 text-gray-600 text-sm leading-6 whitespace-pre-wrap">
             {note.content}
           </p>
+          {note.labels && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {note.labels.map((l) => (
+                <span
+                  key={l}
+                  className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                >
+                  {l}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
+
         <div className="flex flex-col items-end gap-2">
           <span
-            className="inline-block h-5 w-5 rounded-sm border"
-            title="Note color"
+            className="h-5 w-5 rounded border"
             style={{ backgroundColor: note.color || "#ffffff" }}
+            title="Note color"
             aria-hidden="true"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-1">
             <button
               onClick={() => update({ pinned: !note.pinned })}
-              className="rounded-md border px-2 py-1 text-xs hover:bg-muted"
-              aria-label={note.pinned ? "Unpin note" : "Pin note"}
               disabled={busy}
+              className="text-xs px-3 py-1 rounded-full border border-gray-300 bg-gray-50 hover:bg-gray-100 transition"
             >
               {note.pinned ? "Unpin" : "Pin"}
             </button>
             <button
               onClick={() => update({ archived: !note.archived })}
-              className="rounded-md border px-2 py-1 text-xs hover:bg-muted"
-              aria-label={note.archived ? "Unarchive note" : "Archive note"}
               disabled={busy}
+              className="text-xs px-3 py-1 rounded-full border border-gray-300 bg-gray-50 hover:bg-gray-100 transition"
             >
               {note.archived ? "Unarchive" : "Archive"}
             </button>
             <button
               onClick={remove}
-              className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
-              aria-label="Delete note"
               disabled={busy}
+              className="text-xs px-3 py-1 rounded-full border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 transition"
             >
               Delete
             </button>
           </div>
         </div>
       </div>
-      {note.labels && note.labels.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {note.labels.map((l) => (
-            <span key={l} className="rounded-md bg-muted px-2 py-0.5 text-xs">
-              {l}
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="mt-2 text-xs text-muted-foreground">
+
+      <div className="mt-2 text-xs text-gray-400">
         Updated{" "}
         {note.updatedAt ? new Date(note.updatedAt).toLocaleString() : "—"}
       </div>
