@@ -1,10 +1,17 @@
-// <CHANGE> remove stray comment line at the top
-# Notes App (Next.js + MongoDB)
+Features
 
-// ... existing code ...
+Quickly create notes with a title, content, labels, and color.
 
-// <CHANGE> close the schema code block properly
-## Schema
-Notes collection document:
-\`\`\`
-{ _id, title, content, labels: string[], color: string, pinned: boolean, archived: boolean, createdAt: Date, updatedAt: Date }
+Edit your notes anytime, right from the list.
+
+Delete notes when you no longer need them.
+
+Pin important notes to keep them on top.
+
+Archive notes to declutter your workspace.
+
+Search and filter by keywords, labels, pinned, or archived status.
+
+Clean, responsive UI with Tailwind CSS.
+
+Easy logout functionality.
