@@ -5,7 +5,6 @@ import { serializeNote } from "@/types/note";
 
 const COLLECTION = "notes";
 
-// Helper to safely convert string to ObjectId
 function asObjectId(id: string) {
   if (!ObjectId.isValid(id)) throw new Error("Invalid note id");
   return new ObjectId(id);
@@ -53,7 +52,7 @@ export async function GET(
   }
 }
 
-// PATCH /api/notes/[id] → Edit Note
+// PATCH /api/notes/[id]
 export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }

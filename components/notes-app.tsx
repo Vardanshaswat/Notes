@@ -263,6 +263,20 @@ function NoteCard({ note, onChanged }: { note: Note; onChanged: () => void }) {
     }
   }
 
+  async function update(patch: Partial<Note>) {
+    setBusy(true);
+    try {
+      await fetch(`/api/notes/${note._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      onChanged();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function remove() {
     if (!confirm("Delete this note?")) return;
     setBusy(true);
