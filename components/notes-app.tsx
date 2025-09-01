@@ -234,15 +234,29 @@ function CreateNoteForm({ onCreated }: { onCreated: () => void }) {
 // ---------- NoteCard ----------
 function NoteCard({ note, onChanged }: { note: Note; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(note.title || "");
+  const [content, setContent] = useState(note.content || "");
+  const [labels, setLabels] = useState((note.labels || []).join(", "));
+  const [color, setColor] = useState(note.color || "#ffffff");
 
-  async function update(patch: Partial<Note>) {
+  async function saveEdits() {
     setBusy(true);
     try {
       await fetch(`/api/notes/${note._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify({
+          title,
+          content,
+          labels: labels
+            .split(",")
+            .map((l) => l.trim())
+            .filter(Boolean),
+          color,
+        }),
       });
+      setEditing(false);
       onChanged();
     } finally {
       setBusy(false);
@@ -250,7 +264,6 @@ function NoteCard({ note, onChanged }: { note: Note; onChanged: () => void }) {
   }
 
   async function remove() {
-    // eslint-disable-next-line no-restricted-globals
     if (!confirm("Delete this note?")) return;
     setBusy(true);
     try {
@@ -264,24 +277,71 @@ function NoteCard({ note, onChanged }: { note: Note; onChanged: () => void }) {
   return (
     <li className="rounded-xl bg-white p-4 shadow-sm hover:shadow-md transition-all duration-200">
       <div className="flex justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            {note.title || "Untitled"}
-          </h3>
-          <p className="mt-1 text-gray-600 text-sm leading-6 whitespace-pre-wrap">
-            {note.content}
-          </p>
-          {note.labels && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {note.labels.map((l) => (
-                <span
-                  key={l}
-                  className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+        <div className="flex-1">
+          {editing ? (
+            <div className="space-y-2">
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Title"
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Content"
+                className="w-full min-h-[4rem] rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <input
+                value={labels}
+                onChange={(e) => setLabels(e.target.value)}
+                placeholder="Labels (comma-separated)"
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-10 w-10 cursor-pointer rounded-lg border"
+                />
+                <button
+                  onClick={saveEdits}
+                  disabled={busy}
+                  className="rounded-md bg-blue-600 px-4 py-1 text-white text-sm font-medium hover:bg-blue-700 transition"
                 >
-                  {l}
-                </span>
-              ))}
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  disabled={busy}
+                  className="rounded-md border px-3 py-1 text-sm hover:bg-gray-100 transition"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
+          ) : (
+            <>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {note.title || "Untitled"}
+              </h3>
+              <p className="mt-1 text-gray-600 text-sm leading-6 whitespace-pre-wrap">
+                {note.content}
+              </p>
+              {note.labels && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {note.labels.map((l) => (
+                    <span
+                      key={l}
+                      className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                    >
+                      {l}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -290,7 +350,6 @@ function NoteCard({ note, onChanged }: { note: Note; onChanged: () => void }) {
             className="h-5 w-5 rounded border"
             style={{ backgroundColor: note.color || "#ffffff" }}
             title="Note color"
-            aria-hidden="true"
           />
           <div className="flex gap-2 mt-1">
             <button
@@ -314,6 +373,15 @@ function NoteCard({ note, onChanged }: { note: Note; onChanged: () => void }) {
             >
               Delete
             </button>
+            {!editing && (
+              <button
+                onClick={() => setEditing(true)}
+                disabled={busy}
+                className="text-xs px-3 py-1 rounded-full border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 transition"
+              >
+                Edit
+              </button>
+            )}
           </div>
         </div>
       </div>

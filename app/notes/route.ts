@@ -3,6 +3,7 @@ import { getDb } from "@/lib/mongodb";
 import { serializeNote } from "@/types/note";
 import { ObjectId } from "mongodb";
 import { getSessionCookieFromRequest, verifySessionToken } from "@/lib/auth";
+import * as React from 'react'
 
 const COLLECTION = "notes";
 
